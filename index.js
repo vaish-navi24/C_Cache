@@ -24,6 +24,7 @@ app.set("view engine" , "ejs");
 app.use(express.static(path.join(__dirname , "public")));
 
 const readline = require("readline");
+const { randomUUID } = require('crypto');
 const rl = readline.createInterface({ input: cprogram.stdout });
 
 const requestQueue = [];
@@ -55,14 +56,37 @@ function processQueue() {
 
 app.get("/", async (req, res) => {
   try {
-    const userToken = req.cookies.tokens;
-    const response = await sendCommandToCProgram(`tokenExists ${userToken}`);
+    let userToken = req.cookies.tokens;
+    let user;
 
-    if (response.includes("false")) {
-      const createResponse = await sendCommandToCProgram(`setUser ${userToken}`);
-      return res.send(`User created: ${createResponse}`);
-    } else {
-      return res.send(`User exists:`);
+    if(!userToken) {
+      userToken = crypto.randomUUID();
+      res.cookie("tokens", userToken, {maxAge : 31536000000});
+      
+      user = await db.collection("tokens").doc(userToken).set({
+        uuid : userToken,
+        pref : "default",
+        rankings : 0,
+        liked_movies : 0,
+        likes : []
+      });
+
+      const createResponse = await sendCommandToCProgram(`setUser ${userToken} ${user.pref}`);
+      return res.send(`User created: ${createResponse}`);      
+    }
+
+    else {
+      const response = await sendCommandToCProgram(`tokenExists ${userToken}`);
+
+      if (response.includes("false")) {
+        user = await db.collection("tokens").doc(userToken).get();
+        const createResponse = await sendCommandToCProgram(`setUser ${userToken} ${user.pref}`);
+        return res.send(`User fetched from the db: ${createResponse}`);
+      } 
+      
+      else {
+        return res.send(`User exists:`);
+      }
     }
 
   } catch (err) {
@@ -70,6 +94,7 @@ app.get("/", async (req, res) => {
     res.status(500).send("Internal server error");
   }
 });
+
 
 
 app.listen(3000, () => {

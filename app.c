@@ -14,18 +14,22 @@ evictMovie movieQueue;
 void* handle_request(void* arg) {
     char* input_str = (char*)arg;
 
-	char* func = strtok(input_str, " ");   // gets "token"
-    char* token = strtok(NULL, " ");   // gets "token2"
+	char* func = strtok(input_str, " ");  
 
     if (strcmp(func, "tokenExists") == 0) {
+		
+		char* token = strtok(NULL, " ");
         tokenExists(token, &userMap);
 
     } else if (strcmp(func, "setUser") == 0) {
-        addUserEntry(&userMap, token, "dark");
+		
+		char* token = strtok(NULL, " ");
+		char* pref = strtok(NULL, " ");
+        addUserEntry(&userMap, token, pref);
+
     } else {
         printf("output : chalo\n");
     }
-
     fflush(stdout);      // IMPORTANT: flush output so Node can receive it
     free(input_str);     // free strdup'ed string
     return NULL;
