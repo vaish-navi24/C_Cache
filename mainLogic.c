@@ -89,6 +89,12 @@ bool addUserEntry(RecentUser *map, char *id, char *preference) {
 	}
 
 	pthread_mutex_unlock(&userLock);
+
+	if (done) {
+		printf("user added successfully\n");
+		fflush(stdout);
+	}
+
 	return done;
 }
 
@@ -445,8 +451,19 @@ MovieEntry* evict_Movie(evictMovie *que) {
 	return ret;
 }
 
-void* handle_request(void* arg) {
-	printf("here is the function ");
+void tokenExists(char *token, RecentUser* map) {
+	int idx = hash_User(token);
+	bool found = false;
 
-	return NULL;
-}
+	for(int i = 0; i < USER; i++) {
+		int t = (idx + i + i*i) % USER;
+		if(map->arr[t] != NULL && strcmp(map->arr[t]->uuid, token) == 0) {
+			found = true;
+			break;
+		}
+	}
+
+	
+    printf("flag: %s\n", found ? "true" : "false");
+	fflush(stdout); 
+} 

@@ -89,4 +89,4 @@ UserEntry* evict_User(evictUser *que);
 
 MovieEntry* evict_Movie(evictMovie *que);
 
-void* handle_request(void* arg);
+void tokenExists(char *token, RecentUser* map);
