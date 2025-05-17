@@ -12,20 +12,21 @@ evictUser userQueue;
 evictMovie movieQueue;
 
 void* handle_request(void* arg) {
-    char* input_str = (char*)arg;
-
+    
+	char* input_str = (char*)arg;
 	char* func = strtok(input_str, " ");  
 
     if (strcmp(func, "tokenExists") == 0) {
-		
 		char* token = strtok(NULL, " ");
-        tokenExists(token, &userMap);
+        tokenExists(token, &userMap, &userQueue);
 
-    } else if (strcmp(func, "setUser") == 0) {
+    } else if (strcmp(func, "addUser") == 0) {
 		
 		char* token = strtok(NULL, " ");
 		char* pref = strtok(NULL, " ");
-        addUserEntry(&userMap, token, pref);
+		int likes = atoi(strtok(NULL, " "));
+		int rate = atoi(strtok(NULL, " "));
+        addUser(&userMap, token, pref, likes, rate, &userQueue);
 
     } else {
         printf("output : chalo\n");

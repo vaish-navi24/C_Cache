@@ -21,6 +21,8 @@ typedef struct UserEntry {
 	int access;
 	bool modified;
 	int idx;
+	int liked_movies;
+	int rated_movies;
 }UserEntry;
 
 typedef struct RecentUser {
@@ -69,7 +71,7 @@ int hash_User(char *id);
 
 int hash_Movie(char *title);
 
-bool addUserEntry(RecentUser *map, char *id, char *preference);
+UserEntry* addUserEntry(RecentUser *map, char *id, char *preference, int likes, int rated);
 
 bool addMovieEntry(RecentMovie *map, char *id, char *title, float rate, int total, int likes, int dislikes, char *gen, bool new);
 
@@ -89,4 +91,8 @@ UserEntry* evict_User(evictUser *que);
 
 MovieEntry* evict_Movie(evictMovie *que);
 
-void tokenExists(char *token, RecentUser* map);
+void tokenExists(char *token, RecentUser* map, evictUser* que);
+
+void invalidateUser(RecentUser *map, UserEntry *del);
+
+void addUser(RecentUser *map, char *id, char *pref, int like, int rated, evictUser *que);

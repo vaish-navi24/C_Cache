@@ -24,7 +24,6 @@ app.set("view engine" , "ejs");
 app.use(express.static(path.join(__dirname , "public")));
 
 const readline = require("readline");
-const { randomUUID } = require('crypto');
 const rl = readline.createInterface({ input: cprogram.stdout });
 
 const requestQueue = [];
@@ -56,6 +55,7 @@ function processQueue() {
 
 app.get("/", async (req, res) => {
   try {
+
     let userToken = req.cookies.tokens;
     let user;
 
@@ -66,12 +66,13 @@ app.get("/", async (req, res) => {
       user = await db.collection("tokens").doc(userToken).set({
         uuid : userToken,
         pref : "default",
-        rankings : 0,
+        rated_movies : 0,
         liked_movies : 0,
-        likes : []
+        likes : [],
+        ratings : []
       });
 
-      const createResponse = await sendCommandToCProgram(`setUser ${userToken} ${user.pref}`);
+      const createResponse = await sendCommandToCProgram(`addUser ${userToken} ${user.pref} ${liked_movies} ${rated_movies}`);
       return res.send(`User created: ${createResponse}`);      
     }
 
@@ -79,23 +80,25 @@ app.get("/", async (req, res) => {
       const response = await sendCommandToCProgram(`tokenExists ${userToken}`);
 
       if (response.includes("false")) {
-        user = await db.collection("tokens").doc(userToken).get();
-        const createResponse = await sendCommandToCProgram(`setUser ${userToken} ${user.pref}`);
+        const userDoc = await db.collection("tokens").doc(userToken).get();
+        const user = userDoc.data();
+
+        const createResponse = await sendCommandToCProgram(`addUser ${userToken} ${user.pref} ${user.liked_movies} ${user.rated_movies}`);
         return res.send(`User fetched from the db: ${createResponse}`);
       } 
       
       else {
-        return res.send(`User exists:`);
+        user = JSON.parse(response.trim());
+        res.send(user);
       }
     }
 
   } catch (err) {
     console.error("Error communicating with C program:", err);
     res.status(500).send("Internal server error");
+    
   }
 });
-
-
 
 app.listen(3000, () => {
   console.log("server running on port 3000");

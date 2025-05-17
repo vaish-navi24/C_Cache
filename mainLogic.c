@@ -61,14 +61,16 @@ int hash_Movie(char *title) {
 	return idx % MOVIE;
 }
 
-bool addUserEntry(RecentUser *map, char *id, char *preference) {
+UserEntry* addUserEntry(RecentUser *map, char *id, char *preference, int likes, int rated) {
 	
 	UserEntry *entry = (UserEntry*)malloc(sizeof(UserEntry));
 	entry->uuid = (char*)malloc(sizeof(char)*37);
 	entry->pref = (char*)malloc(sizeof(char) * 20);
+	entry->liked_movies = likes;
+	entry->rated_movies = rated;
 	bool done = false;
 
-	if(!entry) {return false;}
+	if(!entry) {return NULL;}
 
 	strcpy(entry->uuid, id);
 	strcpy(entry->pref, preference);
@@ -82,20 +84,18 @@ bool addUserEntry(RecentUser *map, char *id, char *preference) {
 		int t = (idx + i + i*i) % USER;
 		if(map->arr[t] == NULL) {
 			map->arr[t] = entry;
-			map->arr[t]->idx = t;
 			done = true;
 			break;
 		}
 	}
 
 	pthread_mutex_unlock(&userLock);
-
-	if (done) {
-		printf("user added successfully\n");
-		fflush(stdout);
+	
+	if(!done) {
+		return NULL;
 	}
 
-	return done;
+	return entry;
 }
 
 bool addMovieEntry(RecentMovie *map, char *id, char *title, float rate, int total, int likes, int dislikes, char *gen, bool new) {
@@ -192,6 +192,8 @@ bool addUserToQue(evictUser *que, UserEntry *entry) {
 		que->arr[p] = que->arr[i];
 		que->arr[i] = temp;
 
+		que->arr[p]->idx = p;
+		que->arr[i]->idx = i;
 		i = p;
 	}
 	pthread_mutex_unlock(&userLock);
@@ -338,6 +340,7 @@ UserEntry* evict_User(evictUser *que) {
 	pthread_mutex_lock(&userLock);
 
 	UserEntry * ret = que->arr[0];
+
 	que->arr[0] = que->arr[que->top];
 	que->arr[0]->idx = 0;
 
@@ -451,19 +454,49 @@ MovieEntry* evict_Movie(evictMovie *que) {
 	return ret;
 }
 
-void tokenExists(char *token, RecentUser* map) {
-	int idx = hash_User(token);
-	bool found = false;
+void tokenExists(char *token, RecentUser* map, evictUser* que) {
 
+	UserEntry *entry = getUser(map, token);
+		
+	if(!entry) {
+		printf("User found : false \n");
+	}
+	else {
+		changeAccess(que, entry);
+		printf("{\"uuid\": \"%s\", \"pref\": \"%s\", \"liked_movies\": %d, \"rated_movies\": %d}\n",entry->uuid, entry->pref, entry->liked_movies, entry->rated_movies);
+	}
+	fflush(stdout); 
+} 
+
+void invalidateUser(RecentUser *map, UserEntry *del) {
+	int idx = hash_User(del->uuid);
+	
 	for(int i = 0; i < USER; i++) {
 		int t = (idx + i + i*i) % USER;
-		if(map->arr[t] != NULL && strcmp(map->arr[t]->uuid, token) == 0) {
-			found = true;
+		if(map->arr[t] != NULL && strcmp(map->arr[t]->uuid, del->uuid) == 0) {
+			map->arr[t] = NULL;
 			break;
 		}
 	}
+}
 
+void addUser(RecentUser *map, char *id, char *pref, int like, int rated, evictUser *que) {
 	
-    printf("flag: %s\n", found ? "true" : "false");
-	fflush(stdout); 
-} 
+	UserEntry* done = addUserEntry(map, id, pref, like, rated);
+	if(!done) {
+		UserEntry *del = evict_User(que);
+		invalidateUser(map, del);
+		free(del);
+
+		printf("No more space for the entry \n");
+		fflush(stdout);
+	}
+	
+	else {
+
+		addUserToQue(que, done);
+
+		printf("User added successfully \n");
+		fflush(stdout);
+	}
+}
