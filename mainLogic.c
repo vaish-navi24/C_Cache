@@ -460,12 +460,14 @@ void tokenExists(char *token, RecentUser* map, evictUser* que) {
 		
 	if(!entry) {
 		printf("User found : false \n");
+		fflush(stdout); 
 	}
 	else {
 		changeAccess(que, entry);
 		printf("{\"uuid\": \"%s\", \"pref\": \"%s\", \"liked_movies\": %d, \"rated_movies\": %d}\n",entry->uuid, entry->pref, entry->liked_movies, entry->rated_movies);
+		fflush(stdout); 
 	}
-	fflush(stdout); 
+	
 } 
 
 void invalidateUser(RecentUser *map, UserEntry *del) {
